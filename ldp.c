@@ -1,6 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <wiringPi.h>
 #include "ldp.h"
+#include "fontv.c"
 
 int init(){
   if (wiringPiSetupPhys() == -1)
@@ -85,15 +88,39 @@ void showrow(int n){
   digitalWrite(EN,1);
 }
 
+void shift_letter_row(int row_value, int width, int colour){
+  int i,j;
+  for (i = 0; i < 8; i++){
+    for (j = width-1; j >= 0; j--){
+      if ((row_value >> j) & 1)
+        colourshift(colour);
+      else
+        colourshift(0);
+    }
+  }
+}
+
+int column_count(char* m){
+  int total = 0;
+  int i;
+  for (i = 0; i < strlen(m); i++){
+    total += letters[m[i]][0];
+  }
+  return total;
+}
+
 void main(){
   init();
   int i,j;
+  int* full_matrix = malloc(80*sizeof(int));
+  char* message = "!;";
+  printf("%d\n",column_count(message));
   while (1){
-    displayoff();
-    for (j = 0; j < 8; j++){
-      colourshift(j%2);
-      showrow(j);
+    for (i = 1; i < 9; i++){
+      for (j = 0; j < 4; j++){
+        shift_letter_row(letters[(int)message[j]][i],letters[(int)message[j]][0],2);
+      }
+      showrow(i);
     }
-    displayon();
   }
 }
