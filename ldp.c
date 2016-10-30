@@ -90,13 +90,11 @@ void showrow(int n){
 
 void shift_letter_row(int row_value, int width, int colour){
   int i,j;
-  for (i = 0; i < 8; i++){
-    for (j = width-1; j >= 0; j--){
-      if ((row_value >> j) & 1)
-        colourshift(colour);
-      else
-        colourshift(0);
-    }
+  for (j = width-1; j >= 0; j--){
+    if ((row_value >> j) & 1)
+      colourshift(colour);
+    else
+      colourshift(0);
   }
 }
 
@@ -109,18 +107,17 @@ int column_count(char* m){
   return total;
 }
 
-void main(){
+void main(int argc, char* argv[]){
   init();
   int i,j;
   int* full_matrix = malloc(80*sizeof(int));
-  char* message = "!;";
-  printf("%d\n",column_count(message));
+  char* message = argv[1];
   while (1){
     for (i = 1; i < 9; i++){
-      for (j = 0; j < 4; j++){
+      for (j = 0; j < strlen(message); j++){
         shift_letter_row(letters[(int)message[j]][i],letters[(int)message[j]][0],2);
       }
-      showrow(i);
+      showrow(i-1);
     }
   }
 }

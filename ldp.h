@@ -16,3 +16,5 @@ void shift();
 void colour(int);
 void colourshift(int);
 void showrow(int);
+void shift_letter_row(int, int, int);
+int column_count(char*);
