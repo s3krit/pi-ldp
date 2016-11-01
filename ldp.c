@@ -52,11 +52,12 @@ void shift(){
   digitalWrite(S,1);
 }
 
+// TODO: Make this use bitshifts
 void colour(int n){
   switch(n){
     case 3: //orange
       digitalWrite(R1,0);
-      digitalWrite(G1,1);
+      digitalWrite(G1,0);
       break;
     case 2: //green
       digitalWrite(R1,1);
@@ -118,6 +119,15 @@ void main(int argc, char* argv[]){
         shift_letter_row(letters[(int)message[j]][i],letters[(int)message[j]][0],2);
       }
       showrow(i-1);
+    }
+  }
+}
+
+void refresh(int n){
+  int i,j;
+  for (i = 1; i < n; i++){
+    for (j = 0; j < 8; j++){
+      showrow(j);
     }
   }
 }
