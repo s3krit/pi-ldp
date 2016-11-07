@@ -2,8 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wiringPi.h>
+#include <pthread.h>
 #include "ldp.h"
 #include "fontv.c"
+
+thread_mutex_t display_mutex;
 
 int init(){
   if (wiringPiSetupPhys() == -1)
@@ -113,21 +116,35 @@ void main(int argc, char* argv[]){
   int i,j;
   int* full_matrix = malloc(80*sizeof(int));
   char* message = argv[1];
-  while (1){
-    for (i = 1; i < 9; i++){
-      for (j = 0; j < strlen(message); j++){
-        shift_letter_row(letters[(int)message[j]][i],letters[(int)message[j]][0],2);
-      }
-      showrow(i-1);
+
+  // Spawn the refresh loop as a separate thread
+  pthread_t rfrsh;
+  pthread_create(&rfrsh,NULL,refresh,NULL);
+  pthread_mutex_init(&refresh_mutex,NULL);
+
+  // Lock while we add the text
+  pthread_mutex_lock(&refresh_mutex);
+  for (i = 1; i < 9; i++){
+    for (j = 0; j < strlen(message); j++){
+      shift_letter_row(letters[(int)message[j]][i],letters[(int)message[j]][0],2);
     }
+    showrow(i-1);
   }
+  pthread_mutex_unlock(&refresh_mutex);
+
+  pthread_exit(&rfrsh);
 }
 
-void refresh(int n){
-  int i,j;
-  for (i = 1; i < n; i++){
-    for (j = 0; j < 8; j++){
-      showrow(j);
+void refresh(){
+  int i;
+  while(1)
+    // Lock the mutex while we refresh the display
+    pthread_mutex_lock(&refresh_mutex);
+    for (i = 0; i < 8; i++){
+      showrow(i);
     }
+    pthread_mutex_unlock(&refresh_mutex);
+    // sleep for 1/n to achieve n frames per second???
+    sleep(1.0/30.0);
   }
 }

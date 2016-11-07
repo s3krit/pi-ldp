@@ -47,4 +47,4 @@ void shift_letter_row(int, int, int);
 int column_count(char*);
 
 // Will refresh the display n times. Set 0 for infinite
-void refresh(int);
+void refresh();
