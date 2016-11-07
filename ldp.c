@@ -3,6 +3,7 @@
 #include <string.h>
 #include <wiringPi.h>
 #include <pthread.h>
+#include <unistd.h>
 #include "ldp.h"
 #include "fontv.c"
 
@@ -122,7 +123,14 @@ void main(int argc, char* argv[]){
   pthread_create(&rfrsh,NULL,refresh,NULL);
   pthread_mutex_init(&refresh_mutex,NULL);
 
-  // Lock while we add the text
+  pushmessage(message);
+
+  pthread_exit(&rfrsh);
+}
+
+// Push a message to the display.
+void pushmessage(char* message){
+  int i,j;
   pthread_mutex_lock(&refresh_mutex);
   for (i = 1; i < 9; i++){
     for (j = 0; j < strlen(message); j++){
@@ -131,10 +139,10 @@ void main(int argc, char* argv[]){
     showrow(i-1);
   }
   pthread_mutex_unlock(&refresh_mutex);
-
-  pthread_exit(&rfrsh);
 }
 
+// infinite loop that constantly refreshes the display
+// (run this in a thread or you're gonna have a bad time)
 void refresh(){
   int i;
   while(1)
@@ -144,7 +152,7 @@ void refresh(){
       showrow(i);
     }
     pthread_mutex_unlock(&refresh_mutex);
-    // sleep for 1/n to achieve n frames per second???
-    sleep(1.0/30.0);
+    // sleep for 1/n to achieve n frames per second
+    usleep((1.0/30.0)*1000);
   }
 }

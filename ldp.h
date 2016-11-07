@@ -48,3 +48,6 @@ int column_count(char*);
 
 // Will refresh the display n times. Set 0 for infinite
 void refresh();
+
+// Push a static message to the LCD
+void pushmessage(char*);
