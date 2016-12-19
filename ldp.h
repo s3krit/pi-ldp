@@ -8,6 +8,10 @@
 #define L 13
 #define S 15
 
+#define ROWS 8
+#define COLUMNS 80
+#define MAX_MESSAGE 1000
+
 // call init() to initialise the display
 int init();
 

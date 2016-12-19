@@ -4,10 +4,23 @@
 #include <wiringPi.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <time.h>
 #include "ldp.h"
 #include "fontv.c"
 
-thread_mutex_t display_mutex;
+pthread_mutex_t display_mutex;
+int display_matrix[ROWS][COLUMNS];
+
+int message_matrix[ROWS][MAX_MESSAGE];
+
+void clear_matrix(){
+  int i,j;
+  for (i = 0; i < ROWS; i++){
+    for (j = 0; j < COLUMNS; j++){
+      display_matrix[i][j] = 0;
+    }
+  }
+}
 
 int init(){
   if (wiringPiSetupPhys() == -1)
@@ -83,6 +96,7 @@ void colourshift(int n){
 }
 
 void showrow(int n){
+  digitalWrite(EN,0);
   digitalWrite(A,(n >> 0) & 1);
   digitalWrite(B,(n >> 1) & 1);
   digitalWrite(C,(n >> 2) & 1);
@@ -112,47 +126,56 @@ int column_count(char* m){
   return total;
 }
 
+// infinite loop that constantly refreshes the display
+// based on what's in display_matrix
+// (run this in a thread or you're gonna have a bad time)
+void refresh(char* message){
+  int i,j;
+  while(1){
+    // Lock the mutex while we refresh the display
+    pthread_mutex_lock(&display_mutex);
+    for (i = 0; i < ROWS; i++){
+      showrow(i);
+      for (j = 0; j < COLUMNS; j++){
+        colourshift(display_matrix[i][j]);
+      }
+    }
+    pthread_mutex_unlock(&display_mutex);
+    usleep(33);
+  }
+}
+// Push a message to the message matrix
+void pushmessage(char* message){
+  int i,j,k,c,cur_col,cur_length;
+  srand(time(NULL));
+  // For each row
+  for (i = 0; i < 8; i++){
+    cur_col = 0;
+    // For each letter in the message
+    for (j = 0; j < strlen(message); j++){
+      // For each column in the letter, set that bit if it needs to be displayed
+      cur_length = letters[(int)message[j]][0];
+      for (k = 0; k < cur_length; k++){
+        if ((letters[(int)message[j]][i+1] >> k) & 1){
+          // For some reason we need to push it to the matrix backwards?
+          display_matrix[i][(cur_length-k)+cur_col] = 1;
+        }
+      }
+      cur_col += cur_length;
+    }
+  }
+}
+
 void main(int argc, char* argv[]){
   init();
-  int i,j;
-  int* full_matrix = malloc(80*sizeof(int));
+  clear_matrix();
   char* message = argv[1];
+  int i,j;
 
   // Spawn the refresh loop as a separate thread
   pthread_t rfrsh;
-  pthread_create(&rfrsh,NULL,refresh,NULL);
-  pthread_mutex_init(&refresh_mutex,NULL);
-
+  pthread_create(&rfrsh,NULL,(void *)refresh,message);
+  pthread_mutex_init(&display_mutex,NULL);
   pushmessage(message);
-
   pthread_exit(&rfrsh);
-}
-
-// Push a message to the display.
-void pushmessage(char* message){
-  int i,j;
-  pthread_mutex_lock(&refresh_mutex);
-  for (i = 1; i < 9; i++){
-    for (j = 0; j < strlen(message); j++){
-      shift_letter_row(letters[(int)message[j]][i],letters[(int)message[j]][0],2);
-    }
-    showrow(i-1);
-  }
-  pthread_mutex_unlock(&refresh_mutex);
-}
-
-// infinite loop that constantly refreshes the display
-// (run this in a thread or you're gonna have a bad time)
-void refresh(){
-  int i;
-  while(1)
-    // Lock the mutex while we refresh the display
-    pthread_mutex_lock(&refresh_mutex);
-    for (i = 0; i < 8; i++){
-      showrow(i);
-    }
-    pthread_mutex_unlock(&refresh_mutex);
-    // sleep for 1/n to achieve n frames per second
-    usleep((1.0/30.0)*1000);
-  }
 }
